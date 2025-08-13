@@ -22,38 +22,38 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Customer Management", description = "APIs for managing bank customers (create, view all)")
 public class CustomerController {
 
-    private CustomerService customerService;
+	private final CustomerService customerService;
 
-    @Operation(summary = "Create a new customer",
-               description = "Registers a new customer in the banking system. Requires unique FIN code, email, and phone number.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Customer created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid input (e.g., validation errors)"),
-            @ApiResponse(responseCode = "409", description = "Conflict: Customer with provided FIN code, email, or phone number already exists"),
-            @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public CustomerResponse createCustomer(
-            @Parameter(description = "Customer details for creation", required = true)
-            @Valid @RequestBody CustomerCreateRequest customerCreateRequest
-    ) {
-        return customerService.createCustomer(customerCreateRequest);
-    }
+	@Operation(summary = "Create a new customer",
+	           description = "Registers a new customer in the banking system. Requires unique FIN code, email, and phone number.")
+	@ApiResponses(value = {
+	        @ApiResponse(responseCode = "201", description = "Customer created successfully"),
+	        @ApiResponse(responseCode = "400", description = "Invalid input (e.g., validation errors)"),
+	        @ApiResponse(responseCode = "409", description = "Conflict: Customer with provided FIN code, email, or phone number already exists"),
+	        @ApiResponse(responseCode = "500", description = "Internal server error")
+	})
+	@PostMapping
+	@ResponseStatus(HttpStatus.CREATED)
+	public CustomerResponse createCustomer(
+	        @Parameter(description = "Customer details for creation", required = true)
+	        @Valid @RequestBody CustomerCreateRequest customerCreateRequest
+	) {
+		return customerService.createCustomer(customerCreateRequest);
+	}
 
-    @Operation(summary = "Get all customers",
-               description = "Retrieves a paginated list of all registered customers.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of customers"),
-            @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    @GetMapping
-    public Page<CustomerResponse> getAllCustomers(
-            @Parameter(description = "Page number (0-indexed)", example = "0")
-            @RequestParam(defaultValue = "0", required = false) Integer page,
-            @Parameter(description = "Number of items per page", example = "10")
-            @RequestParam(defaultValue = "10", required = false) Integer size
-    ) {
-        return customerService.getAllCustomers(page, size);
-    }
+	@Operation(summary = "Get all customers",
+	           description = "Retrieves a paginated list of all registered customers.")
+	@ApiResponses(value = {
+	        @ApiResponse(responseCode = "200", description = "Successfully retrieved list of customers"),
+	        @ApiResponse(responseCode = "500", description = "Internal server error")
+	})
+	@GetMapping
+	public Page<CustomerResponse> getAllCustomers(
+	        @Parameter(description = "Page number (0-indexed)", example = "0")
+	        @RequestParam(defaultValue = "0", required = false) Integer page,
+	        @Parameter(description = "Number of items per page", example = "10")
+	        @RequestParam(defaultValue = "10", required = false) Integer size
+	) {
+		return customerService.getAllCustomers(page, size);
+	}
 }

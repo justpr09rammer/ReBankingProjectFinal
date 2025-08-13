@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8" />
+	<title>Home</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+</head>
+<body>
+<main class="container">
+	<article>
+		<h1>Welcome to Banking App</h1>
+		<p>Use the navigation below:</p>
+		<ul>
+			<li><a th:href="@{/swagger-ui.html}">Swagger UI</a></li>
+			<li><a th:href="@{/h2-console}" target="_blank">H2 Console</a></li>
+			<li><a th:href="@{/logout}">Logout</a></li>
+		</ul>
+	</article>
+</main>
+</body>
+</html>

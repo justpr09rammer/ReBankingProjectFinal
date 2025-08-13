@@ -21,67 +21,71 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 
 @Configuration
+@EnableScheduling
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class SecurityConfig {
 
-    JwtAuthenticationFilter jwtAuthenticationFilter;
-    UserDetailsService userDetailsService;
-    CustomAccessDeniedHandler customAccessDeniedHandler;
-    CustomAuthenticationEntryPointHandler customAuthenticationEntryPointHandler;
+	JwtAuthenticationFilter jwtAuthenticationFilter;
+	UserDetailsService userDetailsService;
+	CustomAccessDeniedHandler customAccessDeniedHandler;
+	CustomAuthenticationEntryPointHandler customAuthenticationEntryPointHandler;
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder());
-        return provider;
-    }
+	@Bean
+	public AuthenticationProvider authenticationProvider() {
+		DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+		provider.setUserDetailsService(userDetailsService);
+		provider.setPasswordEncoder(passwordEncoder());
+		return provider;
+	}
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+		return config.getAuthenticationManager();
+	}
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)) // For form login sessions
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api/v1/auth/**", "/login", "/css/**", "/js/**").permitAll()
-
-                        .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
-
-                        .anyRequest().authenticated()
-                )
-                .exceptionHandling(ex -> ex
-                        .accessDeniedHandler(customAccessDeniedHandler)
-                        .authenticationEntryPoint(customAuthenticationEntryPointHandler)
-                )
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .defaultSuccessUrl("/home", true)
-                        .permitAll()
-                )
-                .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login?logout")
-                        .permitAll()
-                )
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
-    }
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		return http
+				.csrf(AbstractHttpConfigurer::disable)
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)) // For form login sessions
+				.authorizeHttpRequests(auth -> auth
+						.requestMatchers(
+								"/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**",
+								"/api/v1/auth/**", "/login", "/home",
+								"/css/**", "/js/**", "/images/**"
+						).permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("USER", "ADMIN")
+						.requestMatchers(HttpMethod.POST, "/api/**").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.PUT, "/api/**").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
+						.anyRequest().authenticated()
+				)
+				.exceptionHandling(ex -> ex
+						.accessDeniedHandler(customAccessDeniedHandler)
+						.authenticationEntryPoint(customAuthenticationEntryPointHandler)
+				)
+				.formLogin(form -> form
+						.loginPage("/login")
+						.defaultSuccessUrl("/home", true)
+						.permitAll()
+				)
+				.logout(logout -> logout
+						.logoutUrl("/logout")
+						.logoutSuccessUrl("/login?logout")
+						.permitAll()
+				)
+				.authenticationProvider(authenticationProvider())
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+				.build();
+	}
 }
