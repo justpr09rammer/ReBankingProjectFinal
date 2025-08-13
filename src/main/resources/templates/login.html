@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8" />
+	<title>Login</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+</head>
+<body>
+<main class="container">
+	<article>
+		<h1>Banking App - Login</h1>
+		<form th:action="@{/login}" method="post">
+			<label>
+				Username
+				<input type="text" name="username" required />
+			</label>
+			<label>
+				Password
+				<input type="password" name="password" required />
+			</label>
+			<button type="submit">Sign in</button>
+		</form>
+		<p>
+			<a th:href="@{/swagger-ui.html}">Open API Docs (Swagger UI)</a>
+		</p>
+	</article>
+</main>
+</body>
+</html>
