@@ -10,6 +10,11 @@ public class ViewController {
 		return "login";
 	}
 
+	@GetMapping("/signup")
+	public String signup() {
+		return "signup";
+	}
+
 	@GetMapping("/home")
 	public String home() {
 		return "home";
