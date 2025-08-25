@@ -1,39 +1,58 @@
 package com.example.bankingprojectfinal.security.controller;
 
-import com.example.bankingprojectfinal.Exception.IncorrectPasswordException;
-import com.example.bankingprojectfinal.Exception.UserHasBeenDisabledException;
-import com.example.bankingprojectfinal.Exception.UserNotFoundException;
-import com.example.bankingprojectfinal.Model.Entity.UserEntity;
-import com.example.bankingprojectfinal.Model.Enums.UserStatus;
-import com.example.bankingprojectfinal.Repository.UserRepository;
-import com.example.bankingprojectfinal.security.dto.AuthenticationResponse;
-import com.example.bankingprojectfinal.security.jwt.JwtUtil;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import com.example.bankingprojectfinal.security.dto.LoginUserDto;
+import com.example.bankingprojectfinal.security.dto.RegisterUserDto;
+import com.example.bankingprojectfinal.security.dto.VerifyUserDto;
+import com.example.bankingprojectfinal.security.model.User;
+import com.example.bankingprojectfinal.security.responses.LoginResponse;
+import com.example.bankingprojectfinal.security.service.AuthenticationService;
+import com.example.bankingprojectfinal.security.service.JwtService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-record LoginRequest(String username, String password) {}
-
+@RequestMapping("/auth")
 @RestController
-@RequestMapping("/api/v1/auth")
-@RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationController {
-	JwtUtil jwtUtil;
-	UserRepository userRepository;
-	PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-	@PostMapping("/login")
-	public ResponseEntity<AuthenticationResponse> login(@RequestBody LoginRequest request) {
-		UserEntity userEntity = userRepository.findById(request.username()).orElseThrow(UserNotFoundException::new);
-		if (userEntity.getStatus().equals(UserStatus.DISABLED)) throw new UserHasBeenDisabledException("user has been disabled");
-		if (!passwordEncoder.matches(request.password(), userEntity.getPassword())) throw new IncorrectPasswordException();
+    private final AuthenticationService authenticationService;
 
-		String token = jwtUtil.generateToken(request.username());
+    public AuthenticationController(JwtService jwtService, AuthenticationService authenticationService) {
+        this.jwtService = jwtService;
+        this.authenticationService = authenticationService;
+    }
 
-		return ResponseEntity.ok(new AuthenticationResponse(token));
-	}
+    @PostMapping("/signup")
+    public ResponseEntity<User> register(@RequestBody RegisterUserDto registerUserDto) {
+        User registeredUser = authenticationService.signup(registerUserDto);
+        return ResponseEntity.ok(registeredUser);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginUserDto loginUserDto){
+        User authenticatedUser = authenticationService.authenticate(loginUserDto);
+        String jwtToken = jwtService.generateToken(authenticatedUser);
+        LoginResponse loginResponse = new LoginResponse(jwtToken, jwtService.getExpirationTime());
+        return ResponseEntity.ok(loginResponse);
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<?> verifyUser(@RequestBody VerifyUserDto verifyUserDto) {
+        try {
+            authenticationService.verifyUser(verifyUserDto);
+            return ResponseEntity.ok("Account verified successfully");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/resend")
+    public ResponseEntity<?> resendVerificationCode(@RequestParam String email) {
+        try {
+            authenticationService.resendVerificationCode(email);
+            return ResponseEntity.ok("Verification code sent");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

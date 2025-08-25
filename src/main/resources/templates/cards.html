@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cards</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}" />
+    <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="container mt-5">
+        <h2>Card Management</h2>
+
+        <div class="mb-3">
+            <label for="customerId" class="form-label">Customer ID</label>
+            <input type="number" class="form-control" id="customerId" placeholder="Enter Customer ID">
+        </div>
+
+        <div class="mb-3">
+            <button class="btn btn-secondary" onclick="fetchAllCards()">List All Cards</button>
+            <button class="btn btn-primary" onclick="fetchCardsByCustomer()">List Cards by Customer</button>
+            <button class="btn btn-success" onclick="createCard()">Create Card</button>
+        </div>
+
+        <table class="table mt-4">
+            <thead>
+            <tr>
+                <th>Card Number</th>
+                <th>Customer ID</th>
+                <th>Balance</th>
+                <th>Issue Date</th>
+                <th>Expire Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody id="cardsTableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        function fetchAllCards() {
+            fetch('/api/v1/card')
+                .then(response => response.json())
+                .then(data => populateTable(data))
+                .catch(error => alert("Failed to fetch all cards"));
+        }
+
+        function fetchCardsByCustomer() {
+            const customerId = document.getElementById("customerId").value;
+            fetch(`/api/v1/card/cardsByCustomerId/${customerId}`)
+                .then(response => response.json())
+                .then(data => populateTable(data));
+        }
+
+        function createCard() {
+            const customerId = document.getElementById("customerId").value;
+            fetch(`/api/v1/card/${customerId}`, {
+                method: 'POST'
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Access Denied');
+                    return response.json();
+                })
+                .then(() => fetchCardsByCustomer())
+                .catch(error => alert(error.message));
+        }
+
+        function activateCard(cardNumber) {
+            fetch(`/api/v1/card/activateCard/${cardNumber}`, {
+                method: 'PUT'
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Access Denied');
+                    return response.json();
+                })
+                .then(() => fetchCardsByCustomer())
+                .catch(error => alert(error.message));
+        }
+
+        function depositCard(cardNumber) {
+            const input = document.getElementById(`amount-${cardNumber}`);
+            const amount = parseFloat(input.value);
+
+            if (isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid amount.');
+                return;
+            }
+
+            fetch(`/api/v1/card/depositCard/${cardNumber}?amount=${amount}`, {
+                method: 'PUT'
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Access Denied');
+                    return response.json();
+                })
+                .then(() => fetchCardsByCustomer())
+                .catch(error => alert(error.message));
+        }
+
+        function populateTable(cards) {
+            const tbody = document.getElementById('cardsTableBody');
+            tbody.innerHTML = '';
+
+            cards.forEach(card => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${card.cardNumber}</td>
+                    <td>${card.customerId}</td>
+                    <td>${card.balance}</td>
+                    <td>${card.issueDate}</td>
+                    <td>${card.expireDate}</td>
+                    <td>${card.status}</td>
+                    <td>
+                        ${card.status === 'NEW' ? `
+                            <button class="btn btn-sm btn-info" onclick="activateCard('${card.cardNumber}')">Activate</button>
+                        ` : ''}
+                        ${card.status === 'ACTIVE' ? `
+                            <input type="number" id="amount-${card.cardNumber}" class="form-control form-control-sm mb-1" placeholder="Amount" style="width: 100px; display: inline;">
+                            <button class="btn btn-sm btn-warning" onclick="depositCard('${card.cardNumber}')">Deposit</button>
+                        ` : ''}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    </script>
+</div>
+</body>
+</html>

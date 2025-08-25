@@ -1,22 +1,84 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:fragment="content">
 <head>
-	<meta charset="UTF-8" />
-	<title>Home</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    <meta charset="UTF-8"/>
+    <title>Home - PaymentSystem</title>
+    <style>
+        body {
+            font-family: Verdana, sans-serif;
+        }
+
+        .nav-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-align: center;
+            padding: 30px 10px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            background-color: #ffffff;
+        }
+
+        .nav-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+            background-color: #f9f9f9;
+        }
+
+        .nav-card img {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            margin-bottom: 15px;
+        }
+
+        .nav-card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+            text-decoration: none;
+        }
+    </style>
 </head>
 <body>
-<main class="container">
-	<article>
-		<h1>Welcome to Banking App</h1>
-		<p>Use the navigation below:</p>
-		<ul>
-			<li><a th:href="@{/swagger-ui.html}">Swagger UI</a></li>
-			<li><a th:href="@{/h2-console}" target="_blank">H2 Console</a></li>
-			<li><a th:href="@{/logout}">Logout</a></li>
-		</ul>
-	</article>
-</main>
+<div class="container text-center mt-5">
+    <h1>Welcome to Payment system</h1>
+    <p class="lead">Please select an option from the menu to get started</p>
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-2 m-3 nav-card">
+            <a th:href="@{/customers}" class="nav-card-title text-decoration-none">
+                <img th:src="@{/images/customer.jpg}" alt="Customers"/>
+                <div>Customers</div>
+            </a>
+        </div>
+
+        <div class="col-md-2 m-3 nav-card">
+            <a th:href="@{/accounts}" class="nav-card-title text-decoration-none">
+                <img th:src="@{/images/account.jpg}" alt="Accounts"/>
+                <div>Accounts</div>
+            </a>
+        </div>
+
+        <div class="col-md-2 m-3 nav-card">
+            <a th:href="@{/cards}" class="nav-card-title text-decoration-none">
+                <img th:src="@{/images/card.jpg}" alt="Cards"/>
+                <div>Cards</div>
+            </a>
+        </div>
+
+        <div class="col-md-2 m-3 nav-card">
+            <a th:href="@{/transactions}" class="nav-card-title text-decoration-none">
+                <img th:src="@{/images/transaction.jpg}" alt="Transactions"/>
+                <div>Transactions</div>
+            </a>
+        </div>
+
+        <div class="col-md-2 m-3 nav-card">
+            <a th:href="@{/users}" class="nav-card-title text-decoration-none">
+                <img th:src="@{/images/user.jpg}" alt="Users"/>
+                <div>Users</div>
+            </a>
+        </div>
+    </div>
+</div>
 </body>
 </html>

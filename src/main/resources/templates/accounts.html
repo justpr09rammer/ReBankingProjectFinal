@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Accounts</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}" />
+    <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="container mt-5">
+        <h2>Account Management</h2>
+
+        <div class="mb-3">
+            <label for="customerId" class="form-label">Customer ID</label>
+            <input type="number" class="form-control" id="customerId" placeholder="Enter Customer ID">
+        </div>
+
+        <div class="mb-3">
+            <button class="btn btn-secondary" onclick="fetchAllAccounts()">List All Accounts</button>
+            <button class="btn btn-primary" onclick="fetchAccountsByCustomer()">List Accounts by Customer</button>
+            <button class="btn btn-success" onclick="createAccount()">Create Account</button>
+        </div>
+
+        <table class="table mt-4">
+            <thead>
+            <tr>
+                <th>Account Number</th>
+                <th>Customer ID</th>
+                <th>Balance</th>
+                <th>Opening Date</th>
+                <th>Expire Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody id="accountsTableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        function fetchAllAccounts() {
+            fetch('/api/v1/account')
+                .then(response => response.json())
+                .then(data => populateTable(data))
+                .catch(error => alert("Failed to fetch all accounts"));
+        }
+
+        function fetchAccountsByCustomer() {
+            const customerId = document.getElementById("customerId").value;
+            fetch(`/api/v1/account/accountsByCustomerId/${customerId}`)
+                .then(response => response.json())
+                .then(data => populateTable(data));
+        }
+
+        function createAccount() {
+            const customerId = document.getElementById("customerId").value;
+            fetch(`/api/v1/account/${customerId}`, {
+                method: 'POST'
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Access Denied');
+                    return response.json();
+                })
+                .then(() => fetchAccountsByCustomer())
+                .catch(error => alert(error.message));
+        }
+
+        function activateAccount(accountNumber) {
+            fetch(`/api/v1/account/activateAccount/${accountNumber}`, {
+                method: 'PUT'
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Access Denied');
+                    return response.json();
+                })
+                .then(() => fetchAccountsByCustomer())
+                .catch(error => alert(error.message));
+        }
+
+        function depositAccount(accountNumber) {
+            const input = document.getElementById(`amount-${accountNumber}`);
+            const amount = parseFloat(input.value);
+
+            if (isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid amount.');
+                return;
+            }
+
+            fetch(`/api/v1/account/depositAccount/${accountNumber}?amount=${amount}`, {
+                method: 'PUT'
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Access Denied');
+                    return response.json();
+                })
+                .then(() => fetchAccountsByCustomer())
+                .catch(error => alert(error.message));
+        }
+
+        function populateTable(accounts) {
+            const tbody = document.getElementById('accountsTableBody');
+            tbody.innerHTML = '';
+
+            accounts.forEach(account => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${account.accountNumber}</td>
+                    <td>${account.customerId}</td>
+                    <td>${account.balance}</td>
+                    <td>${account.openingDate}</td>
+                    <td>${account.expireDate}</td>
+                    <td>${account.status}</td>
+                    <td>
+                        ${account.status === 'NEW' ? `
+                            <button class="btn btn-sm btn-info" onclick="activateAccount('${account.accountNumber}')">Activate</button>
+                        ` : ''}
+                        ${account.status === 'ACTIVE' ? `
+                            <input type="number" id="amount-${account.accountNumber}" class="form-control form-control-sm mb-1" placeholder="Amount" style="width: 100px; display: inline;">
+                            <button class="btn btn-sm btn-warning" onclick="depositAccount('${account.accountNumber}')">Deposit</button>
+                        ` : ''}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    </script>
+</div>
+</body>
+</html>
