@@ -7,6 +7,8 @@ import com.example.bankingprojectfinal.security.model.User;
 import com.example.bankingprojectfinal.security.responses.LoginResponse;
 import com.example.bankingprojectfinal.security.service.AuthenticationService;
 import com.example.bankingprojectfinal.security.service.JwtService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,12 +25,14 @@ public class AuthenticationController {
     }
 
     @PostMapping("/signup")
+    @Operation(summary = "User signup", security = {})
     public ResponseEntity<User> register(@RequestBody RegisterUserDto registerUserDto) {
         User registeredUser = authenticationService.signup(registerUserDto);
         return ResponseEntity.ok(registeredUser);
     }
 
     @PostMapping("/login")
+    @Operation(summary = "User login", security = {})
     public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginUserDto loginUserDto){
         User authenticatedUser = authenticationService.authenticate(loginUserDto);
         String jwtToken = jwtService.generateToken(authenticatedUser);
@@ -37,6 +41,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/verify")
+    @Operation(summary = "Verify user", security = {})
     public ResponseEntity<?> verifyUser(@RequestBody VerifyUserDto verifyUserDto) {
         try {
             authenticationService.verifyUser(verifyUserDto);
@@ -47,6 +52,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/resend")
+    @Operation(summary = "Resend verification code", security = {})
     public ResponseEntity<?> resendVerificationCode(@RequestParam String email) {
         try {
             authenticationService.resendVerificationCode(email);
