@@ -10,7 +10,7 @@ import com.example.bankingprojectfinal.security.service.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@RequestMapping("/auth")
+@RequestMapping("api/v1/auth")
 @RestController
 public class AuthenticationController {
     private final JwtService jwtService;

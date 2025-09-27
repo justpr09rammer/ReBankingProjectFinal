@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 
@@ -23,7 +24,7 @@ public class CardEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id")
     private AccountEntity account;
-
+    private BigDecimal balance;
     private LocalDate issueDate;
     private LocalDate expireDate;
 

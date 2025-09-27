@@ -39,10 +39,10 @@ public class TransactionController {
             @Valid @RequestBody TransferRequest request
     ) {
         log.info("Received transfer request: Debit={}, Credit={}, Amount={}",
-                request.getDebitAccountNumber(), request.getCreditAccountNumber(), request.getAmount());
+                request.getDebitCardNumber(), request.getCreditCardNumber(), request.getAmount());
         return transactionService.transfer(
-                request.getDebitAccountNumber(),
-                request.getCreditAccountNumber(),
+                request.getDebitCardNumber(),
+                request.getCreditCardNumber(),
                 request.getAmount()
         );
     }

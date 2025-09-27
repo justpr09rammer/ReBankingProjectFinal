@@ -10,9 +10,7 @@ public interface CardService {
     ActivateCardResponse activateCard(ActivateCardRequest request);
     DepositCardResponse depositCard(DepositCardRequest request);
     Page<CardDto> getCardsByAccount(String accountNumber,Integer page, Integer size);
-
     Page<CardDto> getCardsByCustomerId(Integer customerId, Integer page, Integer size);
-
     Page<CardDto> getAllActiveCards(Integer page, Integer size);
     Page<CardDto> getAllCards(Integer page, Integer size);
 

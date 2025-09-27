@@ -16,7 +16,7 @@ public interface CardRepository extends JpaRepository<CardEntity, String> {
 
     // Counts active/new cards for a specific account.
     Integer countByAccount_AccountNumberAndStatusIn(String accountNumber, List<CardStatus> statuses);
-
+    CardEntity findByCardNumber(String cardNumber);
     // New: Find cards associated with a specific account number, with pagination.
     Page<CardEntity> findByAccount_AccountNumber(String accountNumber, Pageable pageable);
 

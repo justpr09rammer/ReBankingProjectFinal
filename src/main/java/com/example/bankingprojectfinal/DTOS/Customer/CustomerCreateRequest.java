@@ -28,16 +28,16 @@ public class CustomerCreateRequest {
 
     @Past(message = "Birth date must be a past date")
     private LocalDate birthDate;
-
-    @NotBlank(message = "Fin code is mandatory")
-    @Size(min = 7, max = 7, message = "Fin code must contain 7 characters")
+//
+//    @NotBlank(message = "Fin code is mandatory")
+//    @Size(min = 7, max = 7, message = "Fin code must contain 7 characters")
     private String finCode;
 
-    @NotBlank(message = "Phone number is mandatory")
-    @Pattern(
-            regexp = "^\\+994\\d{9}$",
-            message = "Phone number must start with +994 and be followed by 9 digits"
-    )
+//    @NotBlank(message = "Phone number is mandatory")
+//    @Pattern(
+//            regexp = "^\\+994\\d{9}$",
+//            message = "Phone number must start with +994 and be followed by 9 digits"
+//    )
     private String phoneNumber;
 
     @NotBlank(message = "Email is mandatory")

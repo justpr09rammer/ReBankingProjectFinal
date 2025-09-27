@@ -34,7 +34,6 @@ public class AccountServiceImpl implements AccountService {
 	private final CustomerRepository customerRepository;
 	private final LimitProperties limitProperties;
 	private final AccountNumberGenerator accountNumberGenerator;
-	private final List<AccountStatus> validAccountStatusList = Arrays.asList(AccountStatus.NEW, AccountStatus.ACTIVE);
 
 
 	@Override
@@ -47,7 +46,7 @@ public class AccountServiceImpl implements AccountService {
 		log.debug("Customer found: {}", foundCustomer.getId());
 
 
-		Integer currentAccountCountOfCustomer = accountRepository.countByCustomer_IdAndStatusIn(customerId, validAccountStatusList);
+		Integer currentAccountCountOfCustomer = accountRepository.countByCustomer_IdAndStatusIn(customerId,AccountStatus.ACTIVE);
 		if (currentAccountCountOfCustomer >= limitProperties.getMaxAccountCountPerCustomer()) {
 			log.warn("Customer {} has reached max account limit ({} accounts). Current active/new accounts: {}", customerId, limitProperties.getMaxAccountCountPerCustomer(), currentAccountCountOfCustomer);
 			throw new MaximumAccountCountException(limitProperties.getMaxAccountCountPerCustomer());
@@ -60,10 +59,10 @@ public class AccountServiceImpl implements AccountService {
 		AccountEntity createdAccount = AccountEntity.builder()
 				.accountNumber(currentAccountNumber)
 				.customer(foundCustomer)
-				.balance(BigDecimal.ZERO)
+//				.balance(BigDecimal.ZERO)
 				.openingDate(LocalDate.now())
 				.expireDate(LocalDate.now().plusYears(10))
-				.status(AccountStatus.NEW)
+				.status(AccountStatus.ACTIVE)
 				.transactions(null)
 				.cards(null)
 				.build();
@@ -72,7 +71,7 @@ public class AccountServiceImpl implements AccountService {
 		return AccountCreateResponse.builder()
 				.accountNumber(savedAccount.getAccountNumber())
 				.customerId(savedAccount.getCustomer().getId())
-				.balance(savedAccount.getBalance())
+//				.balance(savedAccount.getBalance())
 				.openingDate(savedAccount.getOpeningDate())
 				.expireDate(savedAccount.getExpireDate())
 				.status(savedAccount.getStatus())
@@ -88,7 +87,7 @@ public class AccountServiceImpl implements AccountService {
 			throw new AccountNotFoundException("Account with number " + accountNumber + " not found.");
 		}
 
-		if (!accountEntity.getStatus().equals(AccountStatus.NEW)) {
+		if (!accountEntity.getStatus().equals(AccountStatus.ACTIVE)) {
 			log.warn("Account {} cannot be activated. Current status: {}. Only NEW accounts can be activated.",
 					accountNumber, accountEntity.getStatus());
 			throw new InvalidAccountActivationException("Account has already been activated");
@@ -102,37 +101,6 @@ public class AccountServiceImpl implements AccountService {
 
 	}
 
-	@Override
-	@Transactional
-	public void depositAccount(String accountNumber, BigDecimal amount) {
-
-		//1 is the given accountNumber valid
-		AccountEntity accountEntity = accountRepository.findByAccountNumber(accountNumber);
-		if (accountEntity == null) {
-			throw new AccountNotFoundException("Account with number " + accountNumber + " does not exist.");
-		}
-
-		log.debug("Account found for deposit: {} with current balance: {}", accountNumber, accountEntity.getBalance());
-		//2 we are checking the given amount is correct or not
-		if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-			log.error("Invalid deposit amount: {}. Amount must be positive.", amount);
-			throw new InvalidDepositAmount("Deposit amount must be positive.");
-		}
-		// 3 we are checking the status of account
-		if (!accountEntity.getStatus().equals(AccountStatus.ACTIVE)) {
-			log.warn("Deposit failed for account {}. Account is not ACTIVE. Current status: {}",
-					accountNumber, accountEntity.getStatus());
-			throw new InactiveAccountDepositException("Account should be active");
-		}
-		BigDecimal previousBalance = accountEntity.getBalance();
-		BigDecimal newBalance = accountEntity.getBalance().add(amount);
-		accountEntity.setBalance(newBalance);
-		accountRepository.save(accountEntity);
-
-		log.info("Deposited {} to account {}. Previous balance was {} New balance: {}", amount, accountNumber, previousBalance, newBalance);
-
-
-	}
 
 	public Page<AccountResponse> getAccountsByCustomerId(Integer customerId, Integer page, Integer size) {
 		log.info("Fetching accounts for customer ID: {} (page: {}, size: {})", customerId, page, size);
@@ -143,7 +111,7 @@ public class AccountServiceImpl implements AccountService {
 				.map(entity -> AccountResponse.builder()
 						.accountNumber(entity.getAccountNumber())
 						.customerId(entity.getCustomer().getId())
-						.balance(entity.getBalance())
+//						.balance(entity.getBalance())
 						.openingDate(entity.getOpeningDate())
 						.expireDate(entity.getExpireDate())
 						.status(entity.getStatus())
@@ -164,7 +132,7 @@ public class AccountServiceImpl implements AccountService {
 				.map(entity -> AccountResponse.builder()
 						.accountNumber(entity.getAccountNumber())
 						.customerId(entity.getCustomer().getId())
-						.balance(entity.getBalance())
+//						.balance(entity.getBalance())
 						.openingDate(entity.getOpeningDate())
 						.expireDate(entity.getExpireDate())
 						.status(entity.getStatus())
@@ -185,7 +153,7 @@ public class AccountServiceImpl implements AccountService {
 				.map(entity -> AccountResponse.builder()
 						.accountNumber(entity.getAccountNumber())
 						.customerId(entity.getCustomer().getId())
-						.balance(entity.getBalance())
+//						.balance(entity.getBalance())
 						.openingDate(entity.getOpeningDate())
 						.expireDate(entity.getExpireDate())
 						.status(entity.getStatus())
@@ -205,7 +173,7 @@ public class AccountServiceImpl implements AccountService {
 				.map(entity -> AccountResponse.builder()
 						.accountNumber(entity.getAccountNumber())
 						.customerId(entity.getCustomer().getId())
-						.balance(entity.getBalance())
+//						.balance(entity.getBalance())
 						.openingDate(entity.getOpeningDate())
 						.expireDate(entity.getExpireDate())
 						.status(entity.getStatus())

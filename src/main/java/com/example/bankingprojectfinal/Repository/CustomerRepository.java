@@ -11,6 +11,5 @@ import org.springframework.stereotype.Repository;
 public interface CustomerRepository extends JpaRepository<CustomerEntity, Integer> {
     Page<CustomerEntity> findByStatus(CustomerStatus status, Pageable pageable);
     boolean existsByFinCode(String finCode);
-    boolean existsByEmail(String email);
     boolean existsByPhoneNumber(String phoneNumber);
 }

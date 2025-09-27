@@ -4,6 +4,7 @@ import com.example.bankingprojectfinal.DTOS.Card.*;
 import com.example.bankingprojectfinal.Exception.*;
 import com.example.bankingprojectfinal.Model.Entity.AccountEntity;
 import com.example.bankingprojectfinal.Model.Entity.CardEntity;
+import com.example.bankingprojectfinal.Model.Entity.CustomerEntity;
 import com.example.bankingprojectfinal.Model.Entity.TransactionEntity;
 import com.example.bankingprojectfinal.Model.Enums.AccountStatus;
 import com.example.bankingprojectfinal.Model.Enums.CardStatus;
@@ -93,7 +94,7 @@ public class CardServiceImpl implements CardService {
                     .issueDate(savedCardEntity.getIssueDate())
                     .expireDate(savedCardEntity.getExpireDate())
                     .status(savedCardEntity.getStatus())
-                    .balance(savedCardEntity.getAccount().getBalance())
+                    .balance(BigDecimal.ZERO)
                     .build();
 
             return CardCreateResponse.builder()
@@ -146,7 +147,7 @@ public class CardServiceImpl implements CardService {
                     .issueDate(updatedCardEntity.getIssueDate())
                     .expireDate(updatedCardEntity.getExpireDate())
                     .status(updatedCardEntity.getStatus())
-                    .balance(updatedCardEntity.getAccount().getBalance())
+                    .balance(cardEntity.getBalance())
                     .build();
 
             return ActivateCardResponse.builder()
@@ -204,21 +205,19 @@ public class CardServiceImpl implements CardService {
             }
 
 
-            BigDecimal currentBalance = accountEntity.getBalance();
+            BigDecimal currentBalance = cardEntity.getBalance();
             BigDecimal newBalance = currentBalance.add(amount);
-            accountEntity.setBalance(newBalance);
-            accountRepository.save(accountEntity);
+            cardEntity.setBalance(newBalance);
+            cardRepository.save(cardEntity);
             log.info("Successfully deposited {} to account {}. New balance: {}", amount, accountEntity.getAccountNumber(), newBalance);
-
+            CustomerEntity customerEntity = cardEntity.getAccount().getCustomer();
             TransactionEntity transaction = TransactionEntity.builder()
                     .amount(amount)
                     .transactionType(TransactionType.DEPOSIT)
                     .transactionDate(LocalDate.now())
-                    .creditAccountNumber(accountEntity.getAccountNumber())
-                    .debitAccountNumber("CARD_DEPOSIT")
+//                    .debitAccountNumber("CARD_DEPOSIT")
                     .status(TransactionStatus.COMPLETED)
                     .account(accountEntity)
-                    .customer(accountEntity.getCustomer())
                     .build();
 
             TransactionEntity savedTransaction = transactionRepository.save(transaction);
@@ -266,7 +265,7 @@ public class CardServiceImpl implements CardService {
 
         if (cardEntity.getAccount() != null) {
             accountNumber = cardEntity.getAccount().getAccountNumber();
-            balance = cardEntity.getAccount().getBalance();
+            balance = cardEntity.getBalance();
         }
 
         return CardDto.builder()

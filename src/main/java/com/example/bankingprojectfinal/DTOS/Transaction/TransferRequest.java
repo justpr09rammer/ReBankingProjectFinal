@@ -22,14 +22,9 @@ import java.math.BigDecimal;
 public class TransferRequest {
 
     @NotBlank(message = "Debit account number cannot be empty")
-    @Pattern(regexp = "^\\d{20}$", message = "Debit account number must be 20 digits")
-    @Schema(description = "The 20-digit account number from which funds will be debited", example = "12345678901234567890")
-    private String debitAccountNumber;
+    private String debitCardNumber;
 
-    @NotBlank(message = "Credit account number cannot be empty")
-    @Pattern(regexp = "^\\d{20}$", message = "Credit account number must be 20 digits")
-    @Schema(description = "The 20-digit account number to which funds will be credited", example = "09876543210987654321")
-    private String creditAccountNumber;
+    private String creditCardNumber;
 
     @NotNull(message = "Amount cannot be null")
     @DecimalMin(value = "0.01", inclusive = true, message = "Amount must be greater than zero")

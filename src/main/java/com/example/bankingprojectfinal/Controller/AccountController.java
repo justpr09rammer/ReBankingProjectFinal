@@ -125,21 +125,5 @@ public class AccountController {
         accountService.activateAccount(accountNumber);
     }
 
-    @Operation(summary = "Deposit funds into an account", description = "Adds a specified amount to the balance of an ACTIVE account.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Deposit successful (No Content)"),
-            @ApiResponse(responseCode = "404", description = "Account not found"),
-            @ApiResponse(responseCode = "400", description = "Invalid deposit amount or account not active"),
-            @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    @PutMapping("/depositAccount/{accountNumber}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void depositAccount(
-            @Parameter(description = "Account number to deposit into", required = true, example = "ACC123456789")
-            @PathVariable String accountNumber,
-            @Parameter(description = "Amount to deposit", required = true, example = "100.50")
-            @RequestParam BigDecimal amount
-    ) {
-        accountService.depositAccount(accountNumber, amount);
-    }
+
 }

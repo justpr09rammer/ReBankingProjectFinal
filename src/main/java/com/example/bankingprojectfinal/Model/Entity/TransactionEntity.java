@@ -22,17 +22,15 @@ public class TransactionEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String transactionId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id")
-    private CustomerEntity customer;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id")
+    @JoinColumn(name = "account_id", nullable = false)
     private AccountEntity account;
 
     private String debitAccountNumber;
     private String creditAccountNumber;
     private LocalDate transactionDate;
+
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)

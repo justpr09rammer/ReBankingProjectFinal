@@ -13,11 +13,9 @@ import java.util.List;
 
 @Repository
 public interface AccountRepository extends JpaRepository<AccountEntity, String> {
-    Integer countByCustomer_IdAndStatusIn(Integer customerId, List<AccountStatus> accountStatusList);
     List<AccountEntity> findByCustomer_IdAndStatus(Integer customerId, AccountStatus accountStatus);
-    Page<AccountEntity> findByCustomer_IdAndStatusIn(Integer customerId, List<AccountStatus> accountStatusList, Pageable pageable);
     Page<AccountEntity> findByStatus(AccountStatus status, Pageable pageable);
     Boolean existsByAccountNumber(String accountNumber);
     AccountEntity findByAccountNumber(String accountNumber);
-
+    List<AccountEntity> findAccountEntitiesByAccountStatus(AccountStatus accountStatus);
 }

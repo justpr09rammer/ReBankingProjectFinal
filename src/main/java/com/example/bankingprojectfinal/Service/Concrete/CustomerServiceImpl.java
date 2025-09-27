@@ -35,7 +35,6 @@ public class CustomerServiceImpl implements CustomerService {
                 .birthDate(customerEntity.getBirthDate())
                 .finCode(customerEntity.getFinCode())
                 .phoneNumber(customerEntity.getPhoneNumber())
-                .email(customerEntity.getEmail())
                 .registrationDate(customerEntity.getRegistrationDate())
                 .status(customerEntity.getStatus())
                 .build();
@@ -51,10 +50,6 @@ public class CustomerServiceImpl implements CustomerService {
             log.warn("Customer creation failed: Duplicate FIN code found: {}", customerCreateRequest.getFinCode());
             throw new DuplicateResourceException("Customer with FIN code " + customerCreateRequest.getFinCode() + " already exists.");
         }
-        if (customerRepository.existsByEmail(customerCreateRequest.getEmail())) {
-            log.warn("Customer creation failed: Duplicate email found: {}", customerCreateRequest.getEmail());
-            throw new DuplicateResourceException("Customer with email " + customerCreateRequest.getEmail() + " already exists.");
-        }
         if (customerRepository.existsByPhoneNumber(customerCreateRequest.getPhoneNumber())) {
             log.warn("Customer creation failed: Duplicate phone number found: {}", customerCreateRequest.getPhoneNumber());
             throw new DuplicateResourceException("Customer with phone number " + customerCreateRequest.getPhoneNumber() + " already exists.");
@@ -67,7 +62,6 @@ public class CustomerServiceImpl implements CustomerService {
                     .birthDate(customerCreateRequest.getBirthDate())
                     .finCode(customerCreateRequest.getFinCode())
                     .phoneNumber(customerCreateRequest.getPhoneNumber())
-                    .email(customerCreateRequest.getEmail())
                     .registrationDate(LocalDate.now())
                     .status(CustomerStatus.REGULAR)
                     .build();

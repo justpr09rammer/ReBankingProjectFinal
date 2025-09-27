@@ -1,5 +1,7 @@
 package com.example.bankingprojectfinal.security.model;
 
+import com.example.bankingprojectfinal.Model.Entity.CustomerEntity;
+import com.example.bankingprojectfinal.Model.Enums.UserRole;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,7 +31,11 @@ public class User implements UserDetails {
     private String verificationCode;
     @Column(name = "verification_expiration")
     private LocalDateTime verificationCodeExpiresAt;
-    private boolean enabled;
+    private boolean enabled = false;
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private CustomerEntity customer;
+
+    private UserRole userRole = UserRole.USER;
 
     //constructor for creating an unverified user
     public User(String username, String email, String password) {
@@ -37,7 +43,6 @@ public class User implements UserDetails {
         this.email = email;
         this.password = password;
     }
-    //default constructor
     public User(){
     }
 
@@ -64,6 +69,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return enabled;
+        return true;
     }
 }

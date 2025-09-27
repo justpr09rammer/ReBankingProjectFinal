@@ -19,7 +19,6 @@ public interface TransactionMapper {
 	default TransactionEntity buildTransactionEntity(CustomerEntity customerEntity, String debit, String credit, BigDecimal amount) {
 		return TransactionEntity.builder()
 				.transactionId(generateTransactionId())
-				.customer(customerEntity)
 				.debitAccountNumber(debit)
 				.creditAccountNumber(credit)
 				.transactionDate(LocalDate.now())
@@ -27,7 +26,6 @@ public interface TransactionMapper {
 				.status(TransactionStatus.PENDING)
 				.build();
 	}
-
 	private String generateTransactionId() {
 		Random random = new Random();
 		StringBuilder stringBuilder = new StringBuilder("TR");
@@ -39,9 +37,8 @@ public interface TransactionMapper {
 
 	default TransactionDto getTransactionDto(TransactionEntity transactionEntity) {
 		TransactionDto transactionDto = mapToTransactionDto(transactionEntity);
-		transactionDto.setCustomerId(transactionEntity.getCustomer().getId());
-		transactionDto.setDebit(transactionEntity.getDebitAccountNumber());
-		transactionDto.setCredit(transactionEntity.getCreditAccountNumber());
+		transactionDto.setDebit(transactionEntity.getDebitCardNumber());
+		transactionDto.setCredit(transactionEntity.getCreditCardNumber());
 		return transactionDto;
 	}
 

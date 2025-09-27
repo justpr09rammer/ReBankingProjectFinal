@@ -53,7 +53,7 @@ public class TransactionSchedule {
 
 		for (TransactionEntity transaction : pendingTransactions) {
 			try {
-				checkCustomerStatus(transaction.getCustomer());
+				checkCustomerStatus(transaction.getAccount().getCustomer());
 
 				updateAccountBalance(transaction.getDebitAccountNumber(), transaction.getAmount(), false); // false for debit
 
@@ -101,18 +101,6 @@ public class TransactionSchedule {
 		if (!account.getStatus().equals(AccountStatus.ACTIVE)) {
 			log.error("Account {} is not active.", accountNumber);
 			throw new AccountNotActiveException("Account is not active.");
-		}
-
-		if (!isCredit) {
-			if (account.getBalance().compareTo(amount) < 0) {
-				log.error("Insufficient funds in debit account {}. Balance: {}, Required: {}", accountNumber, account.getBalance(), amount);
-				throw new NotEnoughFundsException("Not enough funds in debit account.");
-			}
-			account.setBalance(account.getBalance().subtract(amount));
-			log.debug("Debit account {} balance updated. New balance: {}", accountNumber, account.getBalance());
-		} else {
-			account.setBalance(account.getBalance().add(amount));
-			log.debug("Credit account {} balance updated. New balance: {}", accountNumber, account.getBalance());
 		}
 
 		accountRepository.save(account);

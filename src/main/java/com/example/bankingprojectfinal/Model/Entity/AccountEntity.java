@@ -29,7 +29,6 @@ public class AccountEntity {
     @JoinColumn(name = "customer_id")
     private CustomerEntity customer;
 
-    private BigDecimal balance;
     private LocalDate openingDate;
     private LocalDate expireDate;
 
