@@ -2,11 +2,13 @@ package com.example.bankingprojectfinal.DTOS.Account;
 
 import com.example.bankingprojectfinal.Model.Enums.AccountStatus;
 import lombok.Builder;
+import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Builder
+@Data
 public class AccountResponse {
     String accountNumber;
     Integer customerId;

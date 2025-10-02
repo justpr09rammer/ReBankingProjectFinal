@@ -1,52 +1,41 @@
 package com.example.bankingprojectfinal.DTOS.Transaction;
 
-import com.example.bankingprojectfinal.Model.Entity.CustomerEntity;
+import com.example.bankingprojectfinal.Model.Entity.AccountEntity;
 import com.example.bankingprojectfinal.Model.Entity.TransactionEntity;
 import com.example.bankingprojectfinal.Model.Enums.TransactionStatus;
+import com.example.bankingprojectfinal.Model.Enums.TransactionType;
 import org.mapstruct.Mapper;
-
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
+import java.time.LocalDateTime; // Use LocalDateTime
+
 import java.util.List;
-import java.util.Random;
 
 @Mapper(componentModel = "spring")
 public interface TransactionMapper {
-	TransactionDto mapToTransactionDto(TransactionEntity transactionEntity);
 
-	default TransactionEntity buildTransactionEntity(CustomerEntity customerEntity, String debit, String credit, BigDecimal amount) {
-		return TransactionEntity.builder()
-				.transactionId(generateTransactionId())
-				.debitAccountNumber(debit)
-				.creditAccountNumber(credit)
-				.transactionDate(LocalDate.now())
-				.amount(amount)
-				.status(TransactionStatus.PENDING)
-				.build();
-	}
-	private String generateTransactionId() {
-		Random random = new Random();
-		StringBuilder stringBuilder = new StringBuilder("TR");
-		for (int i = 0; i < 18; i++) {
-			stringBuilder.append(random.nextInt(10));
-		}
-		return stringBuilder.toString();
-	}
+    @Mapping(target = "debitAccountNumber", source = "debitAccount.accountNumber")
+    @Mapping(target = "creditAccountNumber", source = "creditAccount.accountNumber")
+    @Mapping(target = "transactionType", source = "transactionType") // Map transaction type
+        // @Mapping(target = "description", source = "description") // Uncomment if TransactionDto has description
+    TransactionDto mapToTransactionDto(TransactionEntity transactionEntity);
 
-	default TransactionDto getTransactionDto(TransactionEntity transactionEntity) {
-		TransactionDto transactionDto = mapToTransactionDto(transactionEntity);
-		transactionDto.setDebit(transactionEntity.getDebitCardNumber());
-		transactionDto.setCredit(transactionEntity.getCreditCardNumber());
-		return transactionDto;
-	}
+    List<TransactionDto> mapToTransactionDtoList(List<TransactionEntity> transactionEntities);
 
-	default List<TransactionDto> getTransactionDtoList(List<TransactionEntity> transactionEntities) {
-		List<TransactionDto> transactionDtoList = new ArrayList<>();
-		for (TransactionEntity transactionEntity : transactionEntities) {
-			transactionDtoList.add(getTransactionDto(transactionEntity));
-		}
-		return transactionDtoList;
-	}
+    @Named("buildNewTransactionEntity")
+    default TransactionEntity buildTransactionEntity(
+            AccountEntity debitAccount, AccountEntity creditAccount,
+            BigDecimal amount, TransactionType type) { // Removed description parameter
+        return TransactionEntity.builder()
+                .debitAccount(debitAccount)
+                .creditAccount(creditAccount)
+                .transactionDate(LocalDate.from(LocalDateTime.now())) // Corrected to use LocalDateTime directly
+                .amount(amount)
+                .status(TransactionStatus.PENDING) // Default to PENDING for new transactions
+                .transactionType(type)
+                .build();
+    }
 }

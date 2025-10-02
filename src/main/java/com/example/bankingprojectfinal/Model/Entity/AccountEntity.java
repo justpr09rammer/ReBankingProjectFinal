@@ -29,6 +29,7 @@ public class AccountEntity {
     @JoinColumn(name = "customer_id")
     private CustomerEntity customer;
 
+    private BigDecimal balance;
     private LocalDate openingDate;
     private LocalDate expireDate;
 
@@ -38,8 +39,9 @@ public class AccountEntity {
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CardEntity> cards;
 
-    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
-    private List<TransactionEntity> transactions;
+    @OneToMany(mappedBy = "debitAccount", cascade = CascadeType.ALL)
+    private List<TransactionEntity> debitTransactions;
 
-
+    @OneToMany(mappedBy = "creditAccount", cascade = CascadeType.ALL)
+    private List<TransactionEntity> creditTransactions;
 }

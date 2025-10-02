@@ -33,11 +33,32 @@ public class JwtService {
     }
 
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        Map<String, Object> claims = new HashMap<>();
+
+        // Add user info to JWT token
+        if (userDetails instanceof com.example.bankingprojectfinal.security.model.User user) {
+            claims.put("customerId", user.getCustomerId()); // Will be null until customer profile created
+            claims.put("userId", user.getId());
+            claims.put("role", user.getUserRole().name());
+        }
+
+        return generateToken(claims, userDetails);
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return buildToken(extraClaims, userDetails, jwtExpiration);
+    }
+
+    public Integer extractCustomerId(String token) {
+        return extractClaim(token, claims -> claims.get("customerId", Integer.class));
+    }
+
+    public Long extractUserId(String token) {
+        return extractClaim(token, claims -> claims.get("userId", Long.class));
+    }
+
+    public String extractRole(String token) {
+        return extractClaim(token, claims -> claims.get("role", String.class));
     }
 
     public long getExpirationTime() {
@@ -80,7 +101,6 @@ public class JwtService {
                 .parseClaimsJws(token)
                 .getBody();
     }
-
 
     private Key getSignInKey() {
         String effectiveSecret = secretKey;

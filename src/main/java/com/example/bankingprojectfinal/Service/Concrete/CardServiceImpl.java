@@ -6,170 +6,117 @@ import com.example.bankingprojectfinal.Model.Entity.AccountEntity;
 import com.example.bankingprojectfinal.Model.Entity.CardEntity;
 import com.example.bankingprojectfinal.Model.Entity.CustomerEntity;
 import com.example.bankingprojectfinal.Model.Entity.TransactionEntity;
-import com.example.bankingprojectfinal.Model.Enums.AccountStatus;
-import com.example.bankingprojectfinal.Model.Enums.CardStatus;
-import com.example.bankingprojectfinal.Model.Enums.TransactionStatus;
-import com.example.bankingprojectfinal.Model.Enums.TransactionType; // Ensure this is imported
+import com.example.bankingprojectfinal.Model.Enums.*;
 import com.example.bankingprojectfinal.Repository.AccountRepository;
 import com.example.bankingprojectfinal.Repository.CardRepository;
 import com.example.bankingprojectfinal.Repository.TransactionRepository;
 import com.example.bankingprojectfinal.Service.Abstraction.CardService;
 import com.example.bankingprojectfinal.Utils.CardNumberGenerator;
 import com.example.bankingprojectfinal.Utils.LimitProperties;
+import com.example.bankingprojectfinal.security.model.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest; // For creating Pageable instances
-import org.springframework.data.domain.Sort;       // For sorting options in Pageable
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CardServiceImpl implements CardService {
-
     private final TransactionRepository transactionRepository;
     private final CardRepository cardRepository;
     private final AccountRepository accountRepository;
-    private final List<CardStatus> validCardStatusList = Arrays.asList(CardStatus.NEW, CardStatus.ACTIVE);
     private final LimitProperties limitProperties;
     private final CardNumberGenerator cardNumberGenerator;
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && authentication.getPrincipal() instanceof User user) {
+            return user;
+        }
+        throw new IllegalStateException("User not authenticated");
+    }
+
+    private CustomerEntity getCurrentCustomer() {
+        User user = getCurrentUser();
+        if (user.getCustomer() == null) {
+            throw new IllegalStateException("Customer profile not found for authenticated user");
+        }
+        return user.getCustomer();
+    }
+
+    // ==================== CUSTOMER METHODS ====================
+
+    @Override
+    @Transactional
+    public CardCreateResponse createCardForCurrentUser(String accountNumber) {
+        CustomerEntity currentCustomer = getCurrentCustomer();
+
+        log.info("Customer ID {} creating card for account: {}", currentCustomer.getId(), accountNumber);
+        AccountEntity account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountNumber));
+
+        if (!account.getCustomer().getId().equals(currentCustomer.getId())) {
+            throw new IllegalStateException("You can only create cards for your own accounts");
+        }
+        if (currentCustomer.getStatus() == CustomerStatus.BLOCKED) {
+            throw new IllegalStateException("Customer is blocked and cannot create new cards");
+        }
+
+        return createCardInternal(account);
+    }
+
+    @Override
+    @Transactional
+    public ActivateCardResponse activateCardForCurrentUser(String cardNumber) {
+        CustomerEntity currentCustomer = getCurrentCustomer();
+
+        log.info("Customer ID {} activating card: {}", currentCustomer.getId(), cardNumber);
+
+        CardEntity card = cardRepository.findByCardNumber(cardNumber)
+                .orElseThrow(() -> new CardNotFoundException("Card not found: " + cardNumber));
+
+        if (!card.getAccount().getCustomer().getId().equals(currentCustomer.getId())) {
+            throw new IllegalStateException("You can only activate your own cards");
+        }
+
+        return activateCardInternal(card);
+    }
+
+    // ==================== ADMIN METHODS ====================
 
     @Override
     @Transactional
     public CardCreateResponse createCard(CreateCardRequest cardRequest) {
         String accountNumber = cardRequest.getAccountNumber();
-        log.info("Attempting to create card for account number: {}", accountNumber);
+        log.info("Admin creating card for account: {}", accountNumber);
 
-        try {
-            if (!accountRepository.existsByAccountNumber(accountNumber)) {
-                throw new AccountNotFoundException("The given account number is not valid: " + accountNumber);
-            }
+        AccountEntity account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountNumber));
 
-            AccountEntity accountEntity = accountRepository.findByAccountNumber(accountNumber);
-            log.debug("Account found: {} for card creation.", accountEntity.getAccountNumber());
-
-            if (!accountEntity.getStatus().equals(AccountStatus.ACTIVE) &&
-                    !accountEntity.getStatus().equals(AccountStatus.NEW)) {
-                log.warn("Card cannot be created for account {}. Current status: {}. Only NEW or ACTIVE accounts are allowed.",
-                        accountNumber, accountEntity.getStatus());
-                throw new InvalidAccountStatusException(
-                        "Card cannot be created for account in " + accountEntity.getStatus() + " status. Only NEW or ACTIVE accounts are allowed."
-                );
-            }
-
-            Integer currentCardsOnThisAccount = cardRepository.countByAccount_AccountNumberAndStatusIn(accountNumber, validCardStatusList);
-            if (currentCardsOnThisAccount >= limitProperties.getMaxCardCountPerAccount()) {
-                log.warn("Account {} has reached its maximum card limit ({} cards). Current new/active cards: {}",
-                        accountNumber, limitProperties.getMaxCardCountPerAccount(), currentCardsOnThisAccount);
-                throw new MaximumCardCoundException("Account " + accountNumber + " has reached its maximum card limit of " + limitProperties.getMaxCardCountPerAccount() + " cards.");
-            }
-
-            String currentCardNumber;
-            do {
-                currentCardNumber = cardNumberGenerator.generate();
-            } while (cardRepository.existsByCardNumber(currentCardNumber));
-
-            CardEntity cardEntity = CardEntity.builder()
-                    .cardNumber(currentCardNumber)
-                    .account(accountEntity)
-                    .issueDate(LocalDate.now())
-                    .expireDate(LocalDate.now().plusYears(5))
-                    .status(CardStatus.NEW)
-                    .build();
-
-            CardEntity savedCardEntity = cardRepository.save(cardEntity);
-            log.info("Card {} created and linked to account {}.", savedCardEntity.getCardNumber(), savedCardEntity.getAccount().getAccountNumber());
-
-            CardDto createdCardDto = CardDto.builder()
-                    .cardNumber(savedCardEntity.getCardNumber())
-                    .accountNumber(savedCardEntity.getAccount().getAccountNumber())
-                    .issueDate(savedCardEntity.getIssueDate())
-                    .expireDate(savedCardEntity.getExpireDate())
-                    .status(savedCardEntity.getStatus())
-                    .balance(BigDecimal.ZERO)
-                    .build();
-
-            return CardCreateResponse.builder()
-                    .success(true)
-                    .message("Card created successfully for account " + accountNumber + ".")
-                    .card(createdCardDto)
-                    .build();
-
-        } catch (AccountNotFoundException | InvalidAccountStatusException | MaximumCardCoundException e) {
-            log.error("Failed to create card for account {}: {}", accountNumber, e.getMessage());
-            return CardCreateResponse.builder()
-                    .success(false)
-                    .message("Card creation failed: " + e.getMessage())
-                    .build();
-        } catch (Exception e) {
-            log.error("An unexpected error occurred during card creation for account {}: {}", accountNumber, e.getMessage(), e);
-            return CardCreateResponse.builder()
-                    .success(false)
-                    .message("An unexpected error occurred during card creation.")
-                    .build();
-        }
+        return createCardInternal(account);
     }
-
 
     @Override
     @Transactional
     public ActivateCardResponse activateCard(ActivateCardRequest request) {
         String cardNumber = request.getCardNumber();
-        log.info("Attempting to activate card with number: {}", cardNumber);
+        log.info("Admin activating card: {}", cardNumber);
 
-        try {
-            CardEntity cardEntity = cardRepository.findById(cardNumber)
-                    .orElseThrow(() -> new CardNotFoundException("Card with number " + cardNumber + " not found."));
-            log.debug("Card found: {} for activation. Current status: {}", cardNumber, cardEntity.getStatus());
+        CardEntity card = cardRepository.findByCardNumber(cardNumber)
+                .orElseThrow(() -> new CardNotFoundException("Card not found: " + cardNumber));
 
-            if (!cardEntity.getStatus().equals(CardStatus.NEW)) {
-                log.warn("Card {} cannot be activated. Current status: {}. Only NEW cards can be activated.",
-                        cardNumber, cardEntity.getStatus());
-                throw new InvalidCardActivationException("Card has already been activated or is not in NEW status. Current status: " + cardEntity.getStatus());
-            }
-            LocalDate previousExpireDate = cardEntity.getExpireDate();
-            cardEntity.setStatus(CardStatus.ACTIVE);
-            cardEntity.setExpireDate(LocalDate.now().plusYears(5)); // Set expire date to 5 years from NOW (activation date)
-            CardEntity updatedCardEntity = cardRepository.save(cardEntity);
-            log.info("Card {} successfully activated.", cardNumber);
-
-            CardDto activatedCardDto = CardDto.builder()
-                    .cardNumber(updatedCardEntity.getCardNumber())
-                    .accountNumber(updatedCardEntity.getAccount().getAccountNumber())
-                    .issueDate(updatedCardEntity.getIssueDate())
-                    .expireDate(updatedCardEntity.getExpireDate())
-                    .status(updatedCardEntity.getStatus())
-                    .balance(cardEntity.getBalance())
-                    .build();
-
-            return ActivateCardResponse.builder()
-                    .success(true)
-                    .previousExpireDate(previousExpireDate)
-                    .message("Card " + cardNumber + " activated successfully!")
-                    .card(activatedCardDto)
-                    .build();
-
-        } catch (CardNotFoundException | InvalidCardActivationException e) {
-            log.error("Failed to activate card {}: {}", cardNumber, e.getMessage());
-            return ActivateCardResponse.builder()
-                    .success(false)
-                    .message("Card activation failed: " + e.getMessage())
-                    .build();
-        } catch (Exception e) {
-            log.error("An unexpected error occurred during card activation for card {}: {}", cardNumber, e.getMessage(), e);
-            return ActivateCardResponse.builder()
-                    .success(false)
-                    .message("An unexpected error occurred during card activation.")
-                    .build();
-        }
+        return activateCardInternal(card);
     }
 
     @Override
@@ -177,63 +124,51 @@ public class CardServiceImpl implements CardService {
     public DepositCardResponse depositCard(DepositCardRequest request) {
         String cardNumber = request.getCardNumber();
         BigDecimal amount = request.getAmount();
-        log.info("Attempting to deposit {} to card number: {}", amount, cardNumber);
+        log.info("Depositing {} to card: {}", amount, cardNumber);
 
         try {
-            CardEntity cardEntity = cardRepository.findById(cardNumber)
-                    .orElseThrow(() -> new CardNotFoundException("Card with number " + cardNumber + " not found."));
-            log.debug("Card found: {} for deposit.", cardNumber);
+            CardEntity card = cardRepository.findByCardNumber(cardNumber)
+                    .orElseThrow(() -> new CardNotFoundException("Card not found: " + cardNumber));
 
-            // Best practice: Explicitly check for ACTIVE status, not just non-EXPIRED
-            if (!cardEntity.getStatus().equals(CardStatus.ACTIVE)) {
-                log.warn("Deposit failed for card {}. Card status is {}. Only ACTIVE cards can be used for deposits.",
-                        cardNumber, cardEntity.getStatus());
-                throw new InvalidCardStatusException("Card is not active. Current status: " + cardEntity.getStatus() + ". Only ACTIVE cards can be used for deposits.");
+            if (!card.getStatus().equals(CardStatus.ACTIVE)) {
+                throw new InvalidCardStatusException("Card is not active. Current status: " + card.getStatus());
             }
 
-            AccountEntity accountEntity = cardEntity.getAccount();
-            if (accountEntity == null) {
-                log.error("Card {} is not linked to any account.", cardNumber);
-                throw new AccountNotFoundException("Account linked to card " + cardNumber + " not found.");
+            AccountEntity account = card.getAccount();
+            if (account == null) {
+                throw new AccountNotFoundException("Account linked to card not found");
+            }
+            if (!account.getStatus().equals(AccountStatus.ACTIVE)) {
+                throw new InvalidAccountStatusException("Account is not active. Current status: " + account.getStatus());
             }
 
-            // Best practice: Explicitly check for ACTIVE account status
-            if (!accountEntity.getStatus().equals(AccountStatus.ACTIVE)) {
-                log.warn("Deposit failed for account {}. Account status is {}. Only ACTIVE accounts can receive deposits.",
-                        accountEntity.getAccountNumber(), accountEntity.getStatus());
-                throw new InvalidAccountStatusException("Account is not active. Current status: " + accountEntity.getStatus() + ". Only ACTIVE accounts can receive deposits.");
-            }
-
-
-            BigDecimal currentBalance = cardEntity.getBalance();
+            BigDecimal currentBalance = account.getBalance();
             BigDecimal newBalance = currentBalance.add(amount);
-            cardEntity.setBalance(newBalance);
-            cardRepository.save(cardEntity);
-            log.info("Successfully deposited {} to account {}. New balance: {}", amount, accountEntity.getAccountNumber(), newBalance);
-            CustomerEntity customerEntity = cardEntity.getAccount().getCustomer();
+            account.setBalance(newBalance);
+            accountRepository.save(account);
             TransactionEntity transaction = TransactionEntity.builder()
+                    .debitAccount(account)
+                    .creditAccount(account)           // The actual account being credited
                     .amount(amount)
                     .transactionType(TransactionType.DEPOSIT)
-                    .transactionDate(LocalDate.now())
-//                    .debitAccountNumber("CARD_DEPOSIT")
+                    .transactionDate(LocalDate.from(LocalDateTime.now())) // Use LocalDateTime
                     .status(TransactionStatus.COMPLETED)
-                    .account(accountEntity)
                     .build();
 
             TransactionEntity savedTransaction = transactionRepository.save(transaction);
-            log.info("Deposit transaction recorded with ID: {}", savedTransaction.getTransactionId());
+
 
             return DepositCardResponse.builder()
                     .success(true)
-                    .message("Successfully deposited " + amount + " to card " + cardNumber + ".")
+                    .message("Successfully deposited " + amount + " to account " + account.getAccountNumber())
                     .cardNumber(cardNumber)
                     .depositedAmount(amount)
                     .newAccountBalance(newBalance)
-                    .transactionId(savedTransaction.getTransactionId())
+//                    .transactionId(savedTransaction.getTransactionId())
                     .transactionTimestamp(LocalDateTime.now())
                     .build();
 
-        } catch (CardNotFoundException | InvalidCardStatusException | AccountNotFoundException | InvalidAccountStatusException e) {
+        } catch (Exception e) {
             log.error("Deposit failed for card {}: {}", cardNumber, e.getMessage());
             return DepositCardResponse.builder()
                     .success(false)
@@ -243,29 +178,158 @@ public class CardServiceImpl implements CardService {
                     .newAccountBalance(BigDecimal.ZERO)
                     .transactionTimestamp(LocalDateTime.now())
                     .build();
-        } catch (Exception e) {
-            log.error("An unexpected error occurred during deposit for card {}: {}", cardNumber, e.getMessage(), e);
-            return DepositCardResponse.builder()
-                    .success(false)
-                    .message("An unexpected error occurred during deposit.")
+        }
+    }
+
+    // ==================== PAGINATED ADMIN QUERIES ====================
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CardDto> getAllActiveCards(Integer page, Integer size) {
+        log.info("Fetching all active cards");
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("issueDate").descending());
+        return cardRepository.findByStatus(CardStatus.ACTIVE, pageable).map(this::convertToCardDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CardDto> getAllCards(Integer page, Integer size) {
+        log.info("Fetching all cards");
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("issueDate").descending());
+        return cardRepository.findAll(pageable).map(this::convertToCardDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CardDto> getAllExpiredCards(Integer page, Integer size) {
+        log.info("Fetching all expired cards");
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("issueDate").descending());
+        return cardRepository.findByStatus(CardStatus.EXPIRED, pageable).map(this::convertToCardDto);
+    }
+
+    // ==================== SIMPLE LIST QUERIES ====================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CardDto> getCardsByCurrentUser() {
+        CustomerEntity currentCustomer = getCurrentCustomer();
+        log.info("Fetching cards for current customer ID: {}", currentCustomer.getId());
+        List<CardEntity> cards = cardRepository.findByAccount_Customer_Id(currentCustomer.getId());
+        return cards.stream().map(this::convertToCardDto).toList();
+    }
+
+    @Override
+    public List<CardDto> getCardsByAccountForCurrentUser(String accountNumber) {
+        return List.of();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CardDto> getCardsByAccount(String accountNumber) {
+        log.info("Fetching cards for account: {}", accountNumber);
+        if (!accountRepository.existsByAccountNumber(accountNumber)) {
+            return List.of();
+        }
+        List<CardEntity> cards = cardRepository.findByAccount_AccountNumber(accountNumber);
+        return cards.stream().map(this::convertToCardDto).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CardDto> getCardsByCustomerId(Integer customerId) {
+        log.info("Fetching cards for customer ID: {}", customerId);
+        List<CardEntity> cards = cardRepository.findByAccount_Customer_Id(customerId);
+        return cards.stream().map(this::convertToCardDto).toList();
+    }
+
+
+
+
+    // ==================== HELPER METHODS ====================
+
+    private CardCreateResponse createCardInternal(AccountEntity account) {
+        try {
+            if (!account.getStatus().equals(AccountStatus.ACTIVE)) {
+                throw new InvalidAccountStatusException(
+                        "Card cannot be created for account in " + account.getStatus() + " status"
+                );
+            }
+            Integer currentCards = cardRepository.countByAccount_AccountNumber(account.getAccountNumber());
+
+            if (currentCards >= limitProperties.getMaxCardCountPerAccount()) {
+                throw new MaximumCardCountException(
+                        "Account has reached maximum card limit of " + limitProperties.getMaxCardCountPerAccount()
+                );
+            }
+
+            String cardNumber;
+            do {
+                cardNumber = cardNumberGenerator.generate();
+            } while (cardRepository.existsByCardNumber(cardNumber));
+
+            CardEntity cardEntity = CardEntity.builder()
                     .cardNumber(cardNumber)
-                    .depositedAmount(amount)
-                    .newAccountBalance(BigDecimal.ZERO)
-                    .transactionTimestamp(LocalDateTime.now())
+                    .account(account)
+                    .issueDate(LocalDate.now())
+                    .expireDate(LocalDate.now().plusYears(5))
+                    .status(CardStatus.ACTIVE)
+                    .build();
+
+            CardEntity savedCard = cardRepository.save(cardEntity);
+            return CardCreateResponse.builder()
+                    .success(true)
+                    .message("Card created successfully")
+                    .card(convertToCardDto(savedCard))
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Card creation failed: {}", e.getMessage());
+            return CardCreateResponse.builder()
+                    .success(false)
+                    .message("Card creation failed: " + e.getMessage())
+                    .build();
+        }
+    }
+
+    private ActivateCardResponse activateCardInternal(CardEntity card) {
+        try {
+            if (card.getStatus().equals(CardStatus.ACTIVE)) {
+                throw new InvalidCardActivationException(
+                        "Card has already been activated. Current status: " + card.getStatus()
+                );
+            }
+
+            LocalDate previousExpireDate = card.getExpireDate();
+            card.setStatus(CardStatus.ACTIVE);
+            card.setExpireDate(LocalDate.now().plusYears(5));
+
+            CardEntity updatedCard = cardRepository.save(card);
+
+            return ActivateCardResponse.builder()
+                    .success(true)
+                    .message("Card activated successfully")
+                    .previousExpireDate(previousExpireDate)
+                    .card(convertToCardDto(updatedCard))
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Card activation failed: {}", e.getMessage());
+            return ActivateCardResponse.builder()
+                    .success(false)
+                    .message("Card activation failed: " + e.getMessage())
                     .build();
         }
     }
 
     private CardDto convertToCardDto(CardEntity cardEntity) {
-        if (cardEntity == null) {
-            return null;
-        }
+        if (cardEntity == null) return null;
+
         String accountNumber = null;
-        BigDecimal balance = BigDecimal.ZERO;
+        BigDecimal accountBalance = BigDecimal.ZERO;
 
         if (cardEntity.getAccount() != null) {
             accountNumber = cardEntity.getAccount().getAccountNumber();
-            balance = cardEntity.getBalance();
+            accountBalance = cardEntity.getAccount().getBalance();
         }
 
         return CardDto.builder()
@@ -274,52 +338,6 @@ public class CardServiceImpl implements CardService {
                 .issueDate(cardEntity.getIssueDate())
                 .expireDate(cardEntity.getExpireDate())
                 .status(cardEntity.getStatus())
-                .balance(balance)
                 .build();
-    }
-
-    @Override
-    @Transactional(readOnly = true) // Read-only methods can be marked as such for optimization
-    public Page<CardDto> getCardsByAccount(String accountNumber, Integer page, Integer size) {
-        log.info("Fetching cards for account number: {} (page: {}, size: {})", accountNumber, page, size);
-        PageRequest pageable = PageRequest.of(page, size, Sort.by("issueDate").descending());
-
-        if (!accountRepository.existsByAccountNumber(accountNumber)) {
-            log.warn("Account not found when fetching cards: {}", accountNumber);
-            return Page.empty(pageable); // Return an empty page if account does not exist
-        }
-
-        Page<CardEntity> cardEntities = cardRepository.findByAccount_AccountNumber(accountNumber, pageable);
-        return cardEntities.map(this::convertToCardDto);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<CardDto> getCardsByCustomerId(Integer customerId, Integer page, Integer size) {
-        log.info("Fetching cards for customer ID: {} (page: {}, size: {})", customerId, page, size);
-        PageRequest pageable = PageRequest.of(page, size, Sort.by("issueDate").descending());
-
-        Page<CardEntity> cardEntities = cardRepository.findByAccount_Customer_Id(customerId, pageable);
-        return cardEntities.map(this::convertToCardDto);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<CardDto> getAllActiveCards(Integer page, Integer size) {
-        log.info("Fetching all active cards (page: {}, size: {})", page, size);
-        PageRequest pageable = PageRequest.of(page, size, Sort.by("issueDate").descending());
-
-        Page<CardEntity> cardEntities = cardRepository.findByStatus(CardStatus.ACTIVE, pageable);
-        return cardEntities.map(this::convertToCardDto);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<CardDto> getAllCards(Integer page, Integer size) {
-        log.info("Fetching all cards (page: {}, size: {})", page, size);
-        PageRequest pageable = PageRequest.of(page, size, Sort.by("issueDate").descending());
-
-        Page<CardEntity> cardEntities = cardRepository.findAll(pageable);
-        return cardEntities.map(this::convertToCardDto);
     }
 }

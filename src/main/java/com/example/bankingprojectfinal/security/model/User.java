@@ -32,12 +32,16 @@ public class User implements UserDetails {
     @Column(name = "verification_expiration")
     private LocalDateTime verificationCodeExpiresAt;
     private boolean enabled = false;
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private CustomerEntity customer;
 
+
+    public Integer getCustomerId() {
+        return customer != null ? customer.getId() : null;
+    }
     private UserRole userRole = UserRole.USER;
 
-    //constructor for creating an unverified user
+
     public User(String username, String email, String password) {
         this.username = username;
         this.email = email;

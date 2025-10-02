@@ -24,7 +24,6 @@ public class CardEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id")
     private AccountEntity account;
-    private BigDecimal balance;
     private LocalDate issueDate;
     private LocalDate expireDate;
 

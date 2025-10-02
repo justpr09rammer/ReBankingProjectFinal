@@ -16,14 +16,29 @@ import java.util.List;
 @Repository
 public interface TransactionRepository extends JpaRepository<TransactionEntity, String> {
 
-	Page<TransactionEntity> findByAccount_Customer_Id(Integer customerId, Pageable pageable);
+    // Query for today's total outgoing transfers for a specific customer
+    // Sums amounts where the customer's account is the debit account and the transaction is completed on today's date.
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM TransactionEntity t " +
+            "WHERE t.debitAccount.customer.id = :customerId " +
+            "AND DATE(t.transactionDate) = :transactionDate " +
+            "AND t.status = 'COMPLETED'")
+    BigDecimal getTodayTotalTransferAmountByDebitAccountCustomer(
+            @Param("customerId") Integer customerId,
+            @Param("transactionDate") LocalDate transactionDate);
 
-	List<TransactionEntity> findByStatus(TransactionStatus status);
+    // Find all transactions where a customer is either the debit account holder or the credit account holder
+    Page<TransactionEntity> findByDebitAccount_Customer_IdOrCreditAccount_Customer_Id(Integer debitCustomerId, Integer creditCustomerId, Pageable pageable);
 
-	@Query("SELECT COALESCE(SUM(t.amount), 0) FROM TransactionEntity t WHERE t.account.customer.id = :customerId AND t.transactionDate BETWEEN :startDate AND :endDate")
-	BigDecimal getMonthlyTotalByCustomer(
-			@Param("customerId") Integer customerId,
-			@Param("startDate") LocalDate startDate,
-			@Param("endDate") LocalDate endDate
-	);
+    // Get monthly total for a customer (as either sender or receiver) for suspicion checks
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM TransactionEntity t " +
+            "WHERE (t.debitAccount.customer.id = :customerId OR t.creditAccount.customer.id = :customerId) " +
+            "AND t.transactionDate BETWEEN :startDate AND :endDate " +
+            "AND t.status = 'COMPLETED'")
+    BigDecimal getMonthlyTotalByCustomer(
+            @Param("customerId") Integer customerId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
+
+    // Find pending transactions (used by the scheduler)
+    List<TransactionEntity> findByStatus(TransactionStatus status);
 }

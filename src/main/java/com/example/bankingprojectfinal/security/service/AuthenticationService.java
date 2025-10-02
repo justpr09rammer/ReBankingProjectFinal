@@ -10,12 +10,14 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
 
 @Service
+@Transactional
 public class AuthenticationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -39,8 +41,10 @@ public class AuthenticationService {
         user.setVerificationCode(generateVerificationCode());
         user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
         user.setEnabled(false);
-        sendVerificationEmail(user);
-        return userRepository.save(user);
+
+        User savedUser = userRepository.save(user);
+        sendVerificationEmail(savedUser);
+        return savedUser;
     }
 
     public User authenticate(LoginUserDto input) {
@@ -50,6 +54,7 @@ public class AuthenticationService {
         if (!user.isEnabled()) {
             throw new RuntimeException("Account not verified. Please verify your account.");
         }
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         input.getEmail(),
@@ -96,7 +101,7 @@ public class AuthenticationService {
         }
     }
 
-    private void sendVerificationEmail(User user) { //TODO: Update with company logo
+    private void sendVerificationEmail(User user) {
         String subject = "Account Verification";
         String verificationCode = "VERIFICATION CODE " + user.getVerificationCode();
         String htmlMessage = "<html>"
@@ -115,10 +120,10 @@ public class AuthenticationService {
         try {
             emailService.sendVerificationEmail(user.getEmail(), subject, htmlMessage);
         } catch (MessagingException e) {
-            // Handle email sending exception
             e.printStackTrace();
         }
     }
+
     private String generateVerificationCode() {
         Random random = new Random();
         int code = random.nextInt(900000) + 100000;

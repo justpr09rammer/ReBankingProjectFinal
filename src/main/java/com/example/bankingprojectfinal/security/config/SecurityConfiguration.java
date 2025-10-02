@@ -31,19 +31,34 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf
+                        .disable() // Disable CSRF for H2 console
+                )
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("api/v1/auth/**").permitAll()
+                        .requestMatchers(
+                                "api/v1/auth/**",
+                                "/h2-console/**", // Allow H2 console access
+                                "/swagger-ui/**", // Allow Swagger UI access
+                                "/v3/api-docs/**", // Allow OpenAPI/Swagger documentation access
+                                "/swagger-resources/**", // Allow Swagger resources
+                                "/webjars/**" // Allow webjars (used by Swagger)
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .headers(headers -> headers
+                        .frameOptions(frameOptions -> frameOptions
+                                .disable() // Disable X-Frame-Options for H2 console
+                        )
+                );
 
         return http.build();
     }
+
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

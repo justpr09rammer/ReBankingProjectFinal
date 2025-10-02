@@ -9,6 +9,5 @@ import java.math.BigDecimal;
 @Builder
 public class CardBalanceResponse {
     private String cardNumber;
-    private BigDecimal balance;
     private String currency;
 }

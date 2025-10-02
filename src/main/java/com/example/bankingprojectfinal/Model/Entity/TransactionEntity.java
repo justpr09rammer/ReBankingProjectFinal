@@ -19,16 +19,19 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class TransactionEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String transactionId;
-
+    @GeneratedValue
+    private java.util.UUID transactionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false)
-    private AccountEntity account;
+    @JoinColumn(name = "debit_account_id", nullable = false)
+    private AccountEntity debitAccount;
 
-    private String debitAccountNumber;
-    private String creditAccountNumber;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "credit_account_id", nullable = false)
+    private AccountEntity creditAccount;
+
+    private String creditCardNumber;
+    private String debitCardNumber;
     private LocalDate transactionDate;
 
     private BigDecimal amount;

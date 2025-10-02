@@ -20,7 +20,6 @@ import java.time.LocalDate;
 public class CardDto {
     String accountNumber;
     String cardNumber;
-    BigDecimal balance;
     LocalDate issueDate;
     LocalDate expireDate;
     CardStatus status;
