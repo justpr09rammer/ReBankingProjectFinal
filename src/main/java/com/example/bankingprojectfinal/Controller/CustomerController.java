@@ -45,7 +45,7 @@ public class CustomerController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/my-profile")
-    @PreAuthorize("hasRole('USER')")
+//    @PreAuthorize("hasRole('USER')")
     public CustomerResponse getMyCustomerProfile() {
         return customerService.getCustomerByCurrentUser();
     }

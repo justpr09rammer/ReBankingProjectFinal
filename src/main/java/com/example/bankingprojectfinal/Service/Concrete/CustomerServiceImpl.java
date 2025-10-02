@@ -59,7 +59,7 @@ public class CustomerServiceImpl implements CustomerService {
             throw new DuplicateResourceException("Customer with phone number " + request.getPhoneNumber() + " already exists.");
         }
 
-        // Create Customer and link to User
+//        Create Customer and link to User
         CustomerEntity customer = CustomerEntity.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
@@ -71,14 +71,25 @@ public class CustomerServiceImpl implements CustomerService {
                 .status(CustomerStatus.REGULAR)
                 .build();
 
-        CustomerEntity savedCustomer = customerRepository.save(customer);
+        try {
+            CustomerEntity savedCustomer = customerRepository.save(customer);
+            currentUser.setCustomer(savedCustomer);
+            userRepository.save(currentUser);
 
-        currentUser.setCustomer(savedCustomer);
-        userRepository.save(currentUser);
+            log.info("Customer profile created with ID: {} for user ID: {}", savedCustomer.getId(), currentUser.getId());
 
-        log.info("Customer profile created with ID: {} for user ID: {}", savedCustomer.getId(), currentUser.getId());
+            return mapToCustomerResponse(savedCustomer);
+        } catch (Exception e) {
+            e.printStackTrace(); // print the real underlying exception
+            throw e;
+        }
 
-        return mapToCustomerResponse(savedCustomer);
+//        currentUser.setCustomer(savedCustomer);
+//        userRepository.save(currentUser);
+//
+//        log.info("Customer profile created with ID: {} for user ID: {}", savedCustomer.getId(), currentUser.getId());
+//
+//        return mapToCustomerResponse(savedCustomer);
     }
 
     @Override

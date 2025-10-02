@@ -36,10 +36,10 @@ public class SecurityConfiguration {
                 )
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
-                                "api/v1/auth/**",
+                                "/api/v1/auth/**",
                                 "/h2-console/**", // Allow H2 console access
                                 "/swagger-ui/**", // Allow Swagger UI access
-                                "/v3/api-docs/**", // Allow OpenAPI/Swagger documentation access
+                                "/api-docs/**", // Allow OpenAPI/Swagger documentation access
                                 "/swagger-resources/**", // Allow Swagger resources
                                 "/webjars/**" // Allow webjars (used by Swagger)
                         ).permitAll()

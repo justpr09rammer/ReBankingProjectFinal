@@ -97,6 +97,7 @@ public class AccountServiceImpl implements AccountService {
                 .openingDate(savedAccount.getOpeningDate())
                 .expireDate(savedAccount.getExpireDate())
                 .status(savedAccount.getStatus())
+                .balance(BigDecimal.ZERO)
                 .success(true)
                 .message("New Account created successfully.")
                 .build();

@@ -37,8 +37,8 @@ public class CustomerEntity {
 
     private LocalDate registrationDate;
 
-    @OneToOne(optional = false, cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @OneToOne
     private User user;
 
     @Enumerated(EnumType.STRING)
